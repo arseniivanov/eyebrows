@@ -1,31 +1,20 @@
-from django.shortcuts import render, HttpResponse, redirect
-from django.core.files.storage import FileSystemStorage
+# -*- coding: utf-8 -*-
 import cv2
 import numpy as np
 import dlib
 import math
 import sys
 import random as rand
+import os
 
-def videoSnap(request):
-    
-    
-    return render(request, 'pages/result.html')
+PROJECT_HOME = os.path.dirname(os.path.realpath(__file__))
+UPLOAD_FOLDER = '{}/uploads/'.format(PROJECT_HOME)
+LOGO_FOLDER = '{}/shared/'.format(PROJECT_HOME)
+OUTPUT_FOLDER = '{}/output/'.format(PROJECT_HOME)
 
-def savePhoto(request):
-    if request.method == 'POST':
-        myfile = request.FILES['image']
-        fs = FileSystemStorage()
-        filename = fs.save(myfile.name, myfile)
-        uploaded_file_url = fs.url(filename)
-        imageProc('../src'+uploaded_file_url)
-        return render(request, 'pages/result.html')
-
-def index(request):
-	return render(request, 'pages/index.html')
 
 def getPt(n1,n2,perc):
-    diff = n2 - n1;
+    diff = n2 - n1
     return n1 + ( diff * perc )    
 
 def drawLine(p1,p2,p3,frame):
@@ -68,18 +57,19 @@ def getIntersection(line1, line2):
     y = a1 * x + b1
     return (int(x), int(y))
 
-def imageProc(url='../src/pages/static/error.png'):
-    
+def main(img_name):
+        
     detector = dlib.get_frontal_face_detector()
-    predictor = dlib.shape_predictor("../src/pages/static/shape_predictor_68_face_landmarks.dat")
-    img = cv2.imread(url) #sys.argv[1]
-    
-    resize = 1
-    width = int(img.shape[1] * resize)
-    height = int(img.shape[0] * resize)
+    predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
+
+    saved_path = os.path.join(UPLOAD_FOLDER, img_name)
+    img = cv2.imread(saved_path)
+
+    width = int(img.shape[1])
+    height = int(img.shape[0])
     dim = (width, height)
     # resize image
-    frame = cv2.resize(img, dim, interpolation = cv2.INTER_AREA) 
+    frame = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
     #mouthleft = 48
     #mouthright = 54
     #noseleft = 31
@@ -90,6 +80,8 @@ def imageProc(url='../src/pages/static/error.png'):
     #righteyeOuter = 45
     #righteyeInner = 42
     #rightiris = 42
+
+    
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     faces = detector(gray)
     
@@ -134,7 +126,7 @@ def imageProc(url='../src/pages/static/error.png'):
     
     oH,oW = frame.shape[:2]
     image = np.dstack([frame, np.ones((oH,oW), dtype="uint8") * 255])
-    lgo_img = cv2.imread('../src/pages/static/logo.png',cv2.IMREAD_UNCHANGED)
+    lgo_img = cv2.imread(os.path.join(LOGO_FOLDER, "logo.png"),cv2.IMREAD_UNCHANGED)
     sclW = 0.5
     sclH = 0.058
     w = int(oW * sclW)
@@ -146,5 +138,10 @@ def imageProc(url='../src/pages/static/error.png'):
     ovr[oH - lH - 10:oH - 10, oW - lW - 10:oW - 10] = lgo
     final = image.copy()
     final = cv2.addWeighted(ovr,0.5,final,1.0,0,final)
-    cv2.imwrite('../src/pages/static/data/savedData' + '.jpg', img)
-    cv2.imwrite('../src/media/output.jpg', final)
+
+    output_path = os.path.join(OUTPUT_FOLDER, img_name)
+
+    cv2.imwrite(output_path, final)
+   
+if __name__ == "__main__":
+    main(img_name=None)
